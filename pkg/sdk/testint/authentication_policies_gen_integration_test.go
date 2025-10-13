@@ -27,6 +27,7 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 				HasName(id.Name()).
 				HasDatabaseName(id.DatabaseName()).
 				HasSchemaName(id.SchemaName()).
+				HasKind("AUTHENTICATION_POLICY").
 				HasOptions("").
 				HasOwner("ACCOUNTADMIN").
 				HasComment(expectedComment).
@@ -45,17 +46,22 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 
 	t.Run("Create - basic", func(t *testing.T) {
 		id := testClientHelper().Ids.RandomSchemaObjectIdentifier()
-		comment := random.Comment()
 
-		err := client.AuthenticationPolicies.Create(ctx, sdk.NewCreateAuthenticationPolicyRequest(id).
-			WithAuthenticationMethods([]sdk.AuthenticationMethods{
-				{Method: sdk.AuthenticationMethodsPassword},
-			}).
-			WithComment(comment))
+		err := client.AuthenticationPolicies.Create(ctx, sdk.NewCreateAuthenticationPolicyRequest(id))
 		require.NoError(t, err)
 		t.Cleanup(testClientHelper().AuthenticationPolicy.DropFunc(t, id))
 
-		assertAuthenticationPolicy(t, id, comment)
+		assertAuthenticationPolicy(t, id, "")
+
+		desc, err := client.AuthenticationPolicies.Describe(ctx, id)
+		require.NoError(t, err)
+
+		assertProperty(t, desc, "COMMENT", "null")
+		assertProperty(t, desc, "MFA_ENROLLMENT", string(sdk.MfaEnrollmentRequiredPasswordOnly))
+		assertProperty(t, desc, "MFA_AUTHENTICATION_METHODS", "[PASSWORD]")
+		assertProperty(t, desc, "SECURITY_INTEGRATIONS", "[ALL]")
+		assertProperty(t, desc, "CLIENT_TYPES", "[ALL]")
+		assertProperty(t, desc, "AUTHENTICATION_METHODS", "[ALL]")
 	})
 
 	t.Run("Create - complete", func(t *testing.T) {
@@ -68,10 +74,6 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 		err := client.AuthenticationPolicies.Create(ctx, sdk.NewCreateAuthenticationPolicyRequest(id).
 			WithComment(comment).
 			WithMfaEnrollment(sdk.MfaEnrollmentOptional).
-			WithMfaAuthenticationMethods([]sdk.MfaAuthenticationMethods{
-				{Method: sdk.MfaAuthenticationMethodsPassword},
-				{Method: sdk.MfaAuthenticationMethodsSaml},
-			}).
 			WithSecurityIntegrations([]sdk.SecurityIntegrationsOption{
 				{Name: samlIntegration.ID()},
 			}).
@@ -112,10 +114,6 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 			WithSet(*sdk.NewAuthenticationPolicySetRequest().
 				WithComment(comment).
 				WithMfaEnrollment(sdk.MfaEnrollmentRequired).
-				WithMfaAuthenticationMethods([]sdk.MfaAuthenticationMethods{
-					{Method: sdk.MfaAuthenticationMethodsPassword},
-					{Method: sdk.MfaAuthenticationMethodsSaml},
-				}).
 				WithSecurityIntegrations([]sdk.SecurityIntegrationsOption{
 					{Name: samlIntegration.ID()},
 				}).
@@ -144,7 +142,6 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 			WithUnset(*sdk.NewAuthenticationPolicyUnsetRequest().
 				WithComment(true).
 				WithMfaEnrollment(true).
-				WithMfaAuthenticationMethods(true).
 				WithSecurityIntegrations(true).
 				WithClientTypes(true).
 				WithAuthenticationMethods(true)))
@@ -220,7 +217,7 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 		t.Run("like", func(t *testing.T) {
 			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().
 				WithLike(sdk.Like{Pattern: sdk.String("test_auth_policy_2_%")}).
-				WithIn(sdk.In{Schema: id.SchemaId()}))
+				WithIn(sdk.ExtendedIn{In: sdk.In{Schema: id.SchemaId()}}))
 			require.NoError(t, err)
 			assert.Len(t, authenticationPolicies, 1)
 		})
@@ -228,33 +225,45 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 		t.Run("starts_with", func(t *testing.T) {
 			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().
 				WithStartsWith("test_auth_policy_").
-				WithIn(sdk.In{Schema: id.SchemaId()}))
+				WithIn(sdk.ExtendedIn{In: sdk.In{Schema: id.SchemaId()}}))
 			require.NoError(t, err)
 			assert.Len(t, authenticationPolicies, 2)
 		})
 
 		t.Run("in_account", func(t *testing.T) {
-			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithIn(sdk.In{Account: sdk.Bool(true)}))
+			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithIn(sdk.ExtendedIn{In: sdk.In{Account: sdk.Bool(true)}}))
 			require.NoError(t, err)
 			assert.Greater(t, len(authenticationPolicies), 3)
 		})
 
 		t.Run("in_database", func(t *testing.T) {
-			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithIn(sdk.In{Database: id.DatabaseId()}))
+			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithIn(sdk.ExtendedIn{In: sdk.In{Database: id.DatabaseId()}}))
 			require.NoError(t, err)
 			assert.Len(t, authenticationPolicies, 3)
 		})
 
 		t.Run("in_schema", func(t *testing.T) {
-			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithIn(sdk.In{Schema: id.SchemaId()}))
+			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithIn(sdk.ExtendedIn{In: sdk.In{Schema: id.SchemaId()}}))
 			require.NoError(t, err)
 			assert.Len(t, authenticationPolicies, 3)
+		})
+
+		t.Run("on_account", func(t *testing.T) {
+			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithOn(sdk.On{Account: sdk.Pointer(true)}))
+			require.NoError(t, err)
+			assert.Len(t, authenticationPolicies, 1)
+		})
+
+		t.Run("on_user", func(t *testing.T) {
+			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().WithOn(sdk.On{User: sdk.NewAccountObjectIdentifier("user_name")}))
+			require.NoError(t, err)
+			assert.Len(t, authenticationPolicies, 1)
 		})
 
 		t.Run("limit", func(t *testing.T) {
 			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().
 				WithLimit(sdk.LimitFrom{Rows: sdk.Int(1)}).
-				WithIn(sdk.In{Schema: id.SchemaId()}))
+				WithIn(sdk.ExtendedIn{In: sdk.In{Schema: id.SchemaId()}}))
 			require.NoError(t, err)
 			assert.Len(t, authenticationPolicies, 1)
 		})
@@ -262,7 +271,7 @@ func TestInt_AuthenticationPolicies(t *testing.T) {
 		t.Run("limit from", func(t *testing.T) {
 			authenticationPolicies, err := client.AuthenticationPolicies.Show(ctx, sdk.NewShowAuthenticationPolicyRequest().
 				WithLimit(sdk.LimitFrom{Rows: sdk.Int(1), From: sdk.String("test_auth_policy_")}).
-				WithIn(sdk.In{Schema: id.SchemaId()}))
+				WithIn(sdk.ExtendedIn{In: sdk.In{Schema: id.SchemaId()}}))
 			require.NoError(t, err)
 			require.Len(t, authenticationPolicies, 1)
 			require.True(t, strings.HasPrefix(authenticationPolicies[0].Name, "test_auth_policy_2"))
