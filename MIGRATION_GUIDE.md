@@ -26,6 +26,14 @@ for changes required after enabling given [Snowflake BCR Bundle](https://docs.sn
 
 ### v2.8.x ➞ v2.9.0
 
+## *(new feature)* Reworked `authentication_policy` resource
+In this version we reworked the [authentication_policy] resource. This includes adding missing features. Note that this resource is not yet stable. We are planning to mark it as stable in the upcoming months.
+
+### Missing values
+We added missing values to the following fields:
+- `authentication_methods` now allows setting `PROGRAMMATIC_ACCESS_TOKEN` and `WORKLOAD_IDENTITY`, references https://github.com/snowflakedb/terraform-provider-snowflake/issues/4006,
+- `client_types` now allows setting ``, references https://github.com/snowflakedb/terraform-provider-snowflake/issues/3391.
+
 ## *(new feature)* New authentication options for Oauth with Client Credentials and Oauth with Authorization Code flows
 
 We added new `OAUTH_CLIENT_CREDENTIALS` and `OAUTH_AUTHORIZATION_CODE` options to the `authenticator` field in the provider. Additionally, the provider has new fields that directly pass the values to the Go driver:

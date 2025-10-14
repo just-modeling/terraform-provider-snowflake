@@ -197,7 +197,7 @@ func CreateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			authenticationMethods[i] = sdk.AuthenticationMethods{Method: *option}
+			authenticationMethods[i] = sdk.AuthenticationMethods{Method: option}
 		}
 		req.WithAuthenticationMethods(authenticationMethods)
 	}
@@ -210,7 +210,7 @@ func CreateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			mfaAuthenticationMethods[i] = sdk.MfaAuthenticationMethods{Method: *option}
+			mfaAuthenticationMethods[i] = sdk.MfaAuthenticationMethods{Method: option}
 		}
 		req.WithMfaAuthenticationMethods(mfaAuthenticationMethods)
 	}
@@ -220,7 +220,7 @@ func CreateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		req = req.WithMfaEnrollment(*option)
+		req = req.WithMfaEnrollment(option)
 	}
 
 	if v, ok := d.GetOk("client_types"); ok {
@@ -231,7 +231,7 @@ func CreateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			clientTypes[i] = sdk.ClientTypes{ClientType: *option}
+			clientTypes[i] = sdk.ClientTypes{ClientType: option}
 		}
 		req.WithClientTypes(clientTypes)
 	}
@@ -386,7 +386,7 @@ func UpdateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 				if err != nil {
 					return diag.FromErr(err)
 				}
-				authenticationMethodsValues[i] = sdk.AuthenticationMethods{Method: *option}
+				authenticationMethodsValues[i] = sdk.AuthenticationMethods{Method: option}
 			}
 
 			set.WithAuthenticationMethods(authenticationMethodsValues)
@@ -405,7 +405,7 @@ func UpdateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 				if err != nil {
 					return diag.FromErr(err)
 				}
-				mfaAuthenticationMethodsValues[i] = sdk.MfaAuthenticationMethods{Method: *option}
+				mfaAuthenticationMethodsValues[i] = sdk.MfaAuthenticationMethods{Method: option}
 			}
 
 			set.WithMfaAuthenticationMethods(mfaAuthenticationMethodsValues)
@@ -417,7 +417,7 @@ func UpdateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 	// change to mfa enrollment
 	if d.HasChange("mfa_enrollment") {
 		if mfaEnrollmentOption, err := sdk.ToMfaEnrollmentOption(d.Get("mfa_enrollment").(string)); err == nil {
-			set.WithMfaEnrollment(*mfaEnrollmentOption)
+			set.WithMfaEnrollment(mfaEnrollmentOption)
 		} else {
 			unset.WithMfaEnrollment(true)
 		}
@@ -433,7 +433,7 @@ func UpdateContextAuthenticationPolicy(ctx context.Context, d *schema.ResourceDa
 				if err != nil {
 					return diag.FromErr(err)
 				}
-				clientTypesValues[i] = sdk.ClientTypes{ClientType: *option}
+				clientTypesValues[i] = sdk.ClientTypes{ClientType: option}
 			}
 
 			set.WithClientTypes(clientTypesValues)
